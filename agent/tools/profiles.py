@@ -48,6 +48,27 @@ from .qwen import (
     QwenWebFetchTool,
     QwenWebSearchTool,
 )
+from .codex import (
+    CodexApplyPatchTool,
+    CodexExecCommandTool,
+    CodexGrepFilesTool,
+    CodexJsReplResetTool,
+    CodexJsReplTool,
+    CodexListDirTool,
+    CodexListMcpResourceTemplatesTool,
+    CodexListMcpResourcesTool,
+    CodexReadFileTool,
+    CodexReadMcpResourceTool,
+    CodexReportAgentJobResultTool,
+    CodexRequestUserInputTool,
+    CodexShellCommandTool,
+    CodexShellTool,
+    CodexSpawnAgentsOnCsvTool,
+    CodexUpdatePlanTool,
+    CodexViewImageTool,
+    CodexWebSearchTool,
+    CodexWriteStdinTool,
+)
 from .opencode import (
     OpencodeApplyPatchTool,
     OpencodeBashTool,
@@ -231,6 +252,51 @@ _PROFILES: dict[str, ToolProfile] = {
         ],
     ),
 
+    # Codex-rs: matches the codex-rs tool set from codex/codex-rs
+    # shell([cmd, args...]), shell_command(cmd), exec_command(command, ...), write_stdin(session_id, input)
+    # read_file(path, offset, limit, mode), list_dir(path), grep_files(pattern, path, include)
+    # apply_patch(patch), update_plan(steps), request_user_input(questions), view_image(path)
+    # web_search(query, cached), js_repl(code), js_repl_reset()
+    # list_mcp_resources, list_mcp_resource_templates, read_mcp_resource(uri)
+    # spawn_agents_on_csv(csv_path, prompt_template), report_agent_job_result(job_id, row_index, result)
+    # + multi-agent: spawn_agent, send_input, wait, close_agent, resume_agent
+    "codex": ToolProfile(
+        name="codex",
+        description=(
+            "Codex-rs style — full tool suite matching codex-rs spec.rs. "
+            "shell([cmd,args]), shell_command(cmd), exec_command(command), write_stdin(session_id, input), "
+            "read_file(path, offset, limit, mode), list_dir(path), grep_files(pattern, path, include), "
+            "apply_patch(patch), update_plan(steps), request_user_input(questions), view_image(path), "
+            "web_search(query, cached), js_repl(code), js_repl_reset(), "
+            "list_mcp_resources, list_mcp_resource_templates, read_mcp_resource(uri), "
+            "spawn_agents_on_csv(csv_path, prompt_template), report_agent_job_result(job_id, row_index, result)."
+        ),
+        _factories=[
+            # Shell / exec
+            CodexShellTool, CodexShellCommandTool,
+            CodexExecCommandTool, CodexWriteStdinTool,
+            # File ops
+            CodexReadFileTool, WriteFileTool, CodexListDirTool, CodexGrepFilesTool,
+            # Content modification
+            CodexApplyPatchTool,
+            # Planning & interaction
+            CodexUpdatePlanTool, CodexRequestUserInputTool,
+            # Media
+            CodexViewImageTool,
+            # Web
+            CodexWebSearchTool,
+            # JS REPL
+            CodexJsReplTool, CodexJsReplResetTool,
+            # MCP
+            CodexListMcpResourcesTool, CodexListMcpResourceTemplatesTool, CodexReadMcpResourceTool,
+            # Batch
+            CodexSpawnAgentsOnCsvTool, CodexReportAgentJobResultTool,
+            # Multi-agent (shared with claude/opencode)
+            SpawnAgentTool, SendInputTool, WaitTool,
+            CloseAgentTool, ResumeAgentTool, ListAgentsTool,
+        ],
+    ),
+
     # OpenCode: matches the actual opencode tool set
     "opencode": ToolProfile(
         name="opencode",
@@ -304,6 +370,8 @@ def infer_profile(model_name: str) -> str:
         return "gemini"
     if "opencode" in m or "open code" in m:
         return "opencode"
+    if "codex" in m:
+        return "codex"
     if "gpt" in m or "o1" in m or "o3" in m or "o4" in m:
         return "gpt"
     if "qwen" in m:
