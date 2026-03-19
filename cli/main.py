@@ -363,7 +363,8 @@ def handle_command(
     elif cmd == "/tools":
         for schema in agent.registry.schemas():
             fn = schema["function"]
-            console.print(f"  [cyan]{fn['name']}[/cyan] — {fn['description'][:80]}")
+            first_line = fn['description'].split('\n')[0]
+            console.print(f"  [cyan]{fn['name']}[/cyan] — {first_line[:80]}")
 
     elif cmd == "/model":
         if not arg:
