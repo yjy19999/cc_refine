@@ -133,7 +133,7 @@ class TestRunStream:
             workspace=tmp_path,
             config=Config(model="test", api_key="test", stream=False),
             max_fix_iterations=3,
-            max_review_iterations=1,
+            max_review_iterations=2,
         )
 
         # Patch _run_tests to return controlled results
@@ -141,6 +141,9 @@ class TestRunStream:
             test_results = [(True, "1 passed")]
         test_iter = iter(test_results)
         runner._run_tests = lambda: next(test_iter)
+
+        # Default: review always passes (tests that care override this)
+        runner._check_review_verdict = lambda: True
 
         # Patch _make_agent to return a mocked agent
         original_make = runner._make_agent
@@ -339,6 +342,7 @@ class TestRunBlocking:
             max_review_iterations=1,
         )
         runner._run_tests = lambda: (True, "1 passed")
+        runner._check_review_verdict = lambda: True
 
         with (
             patch("agent.agent.SessionRecordingService") as mock_rec_cls,

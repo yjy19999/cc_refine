@@ -117,7 +117,7 @@ The task runner orchestrates an 8-phase automated coding loop:
    - `TESTS.md` — validation: test results, coverage gaps, how to run
    - `FOLLOWUPS.md` — honest about: unresolved problems, workarounds, next steps
 
-Workspace folders are named to match the trace file: `trace_{format}_{ts}_{session_id}_workspace/` alongside `trace_{format}_{ts}_{session_id}.json` in `api_logs/`.
+All artifacts for a run are grouped under `output/{ts}_{session_id}/`: code files in `files/`, trace files in `trajectory/`, and compression logs in `memory/`.
 
 ### Configuration (.env)
 
@@ -147,11 +147,13 @@ Workspace folders are named to match the trace file: `trace_{format}_{ts}_{sessi
 ### Session & Log Files
 
 - `.gemini/sessions/` — saved conversation JSON (auto-created)
-- `api_logs/` — trace files per format:
-  - `trace_openhands_{ts}_{session_id}.json` — OpenHands event-stream
-  - `trace_sweagent_{ts}_{session_id}.traj` — SWE-agent trajectory
-  - `trace_miniswe_{ts}_{session_id}.json` — mini-SWE-agent flat messages
-- `task_workspace/` — per-task workspace folders (named to match trace files)
+- `output/{ts}_{session_id}/` — all artifacts for a single task run:
+  - `files/` — generated code, tests, and doc files (the agent workspace)
+  - `trajectory/` — trace files per format:
+    - `trace_openhands_{ts}_{session_id}.json` — OpenHands event-stream
+    - `trace_sweagent_{ts}_{session_id}.traj` — SWE-agent trajectory
+    - `trace_miniswe_{ts}_{session_id}.json` — mini-SWE-agent flat messages
+  - `memory/` — compression event logs (`compression_{ts}_{session_id}.json`)
 - `.agent_todos.json` — todo list used by TodoRead/TodoWrite tools
 
 ### Dependencies (requirements.txt)

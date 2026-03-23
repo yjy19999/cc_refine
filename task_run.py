@@ -8,7 +8,6 @@ Usage:
     python task_run.py --quiet "Build X"        # no live output
 """
 import argparse
-import os
 import shutil
 import uuid
 from datetime import datetime
@@ -16,52 +15,43 @@ from pathlib import Path
 
 from agent import CodingTaskRunner, Config
 
-# Maps LLM_LOG_FORMAT values to the trace file prefix used by the logger.
-# For composite formats ("both", "all"), use the first/primary format.
-_FORMAT_TO_PREFIX = {
-    "openhands": "trace_openhands",
-    "swe-agent": "trace_sweagent",
-    "mini-swe-agent": "trace_miniswe",
-    "both": "trace_openhands",
-    "all": "trace_openhands",
-    "none": "trace",
-}
-
 DEFAULT_TASK = (
     "Write a Python module called `calculator.py` that implements a Calculator class "
     "with methods: add, subtract, multiply, divide. "
     "The divide method should raise ValueError on division by zero."
 )
 
-WORKSPACE_ROOT = Path(__file__).parent / "task_workspace"
+OUTPUT_ROOT = Path(__file__).parent / "output"
 
 
 def main():
     parser = argparse.ArgumentParser(description="Test the CodingTaskRunner")
     parser.add_argument("task", nargs="?", default=DEFAULT_TASK, help="Coding task description")
-    parser.add_argument("--workspace", default=None, help="Workspace folder (overrides auto-naming)")
+    parser.add_argument("--workspace", default=None, help="Override the files/ subfolder path")
     parser.add_argument("--max-iterations", type=int, default=5, help="Max fix iterations")
-    parser.add_argument("--clean", action="store_true", help="Remove workspace before starting")
+    parser.add_argument("--clean", action="store_true", help="Remove output folder before starting")
     parser.add_argument("--quiet", action="store_true", help="No live output")
     parser.add_argument("--model", default=None, help="Override LLM model name")
     args = parser.parse_args()
 
-    # Generate session_id and timestamp so the workspace folder name
-    # matches the trace file: {prefix}_{ts}_{session_id}.<ext>
+    # Each run gets its own timestamped folder under output/
     session_id = uuid.uuid4().hex[:12]
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_format = os.getenv("LLM_LOG_FORMAT", "openhands").strip().lower().replace("_", "-")
-    trace_prefix = _FORMAT_TO_PREFIX.get(log_format, "trace_openhands")
+    run_folder = f"{ts}_{session_id}"
 
-    if args.workspace:
-        workspace = Path(args.workspace)
-    else:
-        folder_name = f"{trace_prefix}_{ts}_{session_id}_workspace"
-        workspace = WORKSPACE_ROOT / folder_name
+    output_dir   = OUTPUT_ROOT / run_folder
+    workspace    = Path(args.workspace) if args.workspace else output_dir / "files"
+    logs_dir     = output_dir / "trajectory"
+    memory_dir   = output_dir / "memory"
 
-    if args.clean and workspace.exists():
-        shutil.rmtree(workspace)
-        print(f"Cleaned workspace: {workspace}")
+    if args.clean and output_dir.exists():
+        shutil.rmtree(output_dir)
+        print(f"Cleaned output: {output_dir}")
+
+    # Create all subdirectories up front
+    workspace.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    memory_dir.mkdir(parents=True, exist_ok=True)
 
     config = Config()
     if args.model:
@@ -74,9 +64,12 @@ def main():
             context_limit=config.context_limit,
         )
 
-    print(f"Model:     {config.model}")
-    print(f"Workspace: {workspace}")
-    print(f"Task:      {args.task[:80]}{'...' if len(args.task) > 80 else ''}")
+    print(f"Model:      {config.model}")
+    print(f"Output dir: {output_dir}")
+    print(f"  files/      → {workspace}")
+    print(f"  trajectory/ → {logs_dir}")
+    print(f"  memory/     → {memory_dir}")
+    print(f"Task:       {args.task[:80]}{'...' if len(args.task) > 80 else ''}")
     print()
 
     runner = CodingTaskRunner(
@@ -84,6 +77,8 @@ def main():
         config=config,
         max_fix_iterations=args.max_iterations,
         session_id=session_id,
+        logs_dir=logs_dir,
+        memory_log_dir=memory_dir,
     )
 
     result = runner.run(args.task, verbose=not args.quiet)

@@ -95,6 +95,8 @@ class Agent:
         session_id: str | None = None,
         agent_id: str | None = None,
         agent_depth: int = 0,
+        logs_dir: str | None = None,
+        memory_log_dir: str | None = None,
     ):
         self.config = config or Config()
         self.agent_id = agent_id
@@ -109,13 +111,13 @@ class Agent:
             self.profile_name = profile_name
             self.registry = get_profile(profile_name).build_registry()
 
-        self.logger = create_logger()
+        self.logger = create_logger(logs_dir=logs_dir or "api_logs")
         self.client = LLMClient(self.config, logger=self.logger)
         self.state = AgentState()
         self._plan_tool = WritePlanTool()
         self._compression = CompressionService()
         self._has_failed_compression = False
-        self._memory_logger = MemoryLogger()
+        self._memory_logger = MemoryLogger(log_dir=memory_log_dir or "memory_logs")
         self.metrics = SessionMetrics()
         self.session_id = session_id or uuid.uuid4().hex[:12]
         self.logger.start_session(self.session_id, self.config.model)

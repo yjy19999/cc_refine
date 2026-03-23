@@ -283,6 +283,8 @@ class CodingTaskRunner:
         max_review_iterations: int = 2,
         test_command: str = _TEST_CMD,
         session_id: str | None = None,
+        logs_dir: str | Path | None = None,
+        memory_log_dir: str | Path | None = None,
     ):
         """
         Args:
@@ -293,6 +295,8 @@ class CodingTaskRunner:
             test_command: Shell command to run tests (default: pytest).
             session_id: Optional session ID. Passed to Agent so the trace
                         file and workspace folder share the same identifier.
+            logs_dir: Directory for trajectory/trace files. Defaults to api_logs/.
+            memory_log_dir: Directory for compression memory logs. Defaults to memory_logs/.
         """
         self.workspace = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
@@ -301,6 +305,8 @@ class CodingTaskRunner:
         self.max_review_iterations = max_review_iterations
         self.test_command = test_command
         self.session_id = session_id
+        self.logs_dir = str(logs_dir) if logs_dir else None
+        self.memory_log_dir = str(memory_log_dir) if memory_log_dir else None
 
     def _make_agent(self) -> Agent:
         """Create a sandboxed Agent."""
@@ -330,6 +336,8 @@ class CodingTaskRunner:
             ),
             registry=sandbox,
             session_id=self.session_id,
+            logs_dir=self.logs_dir,
+            memory_log_dir=self.memory_log_dir,
         )
         return agent
 
